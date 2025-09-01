@@ -1,0 +1,7 @@
+﻿bin/
+obj/
+.vscode/
+.vs/
+*.user
+*.suo
+TestResults/
