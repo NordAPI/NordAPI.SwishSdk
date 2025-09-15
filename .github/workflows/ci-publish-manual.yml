@@ -1,0 +1,24 @@
+name: Manual NuGet Publish
+on:
+  workflow_dispatch:
+    inputs:
+      publish_to_nuget:
+        description: "Skriv exakt 'JA' för att publicera till NuGet.org"
+        required: true
+        default: "NEJ"
+jobs:
+  publish:
+    if: ${{ github.event.inputs.publish_to_nuget == 'JA' }}
+    runs-on: ubuntu-latest
+    environment: nuget-prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet restore
+      - run: dotnet pack -c Release -o out /p:ContinuousIntegrationBuild=true
+      - name: Push to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: dotnet nuget push "out/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
