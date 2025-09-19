@@ -65,10 +65,17 @@ app.MapPost("/webhook/swish", async (
     // Tillåt buffering
     req.EnableBuffering();
 
-    // 1) Läs body (garanterat icke-null)
+    // 1) Läs body EXAKT som skickats (rå body)
     string body;
-    using (var reader = new StreamReader(req.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
-        body = (await reader.ReadToEndAsync()) ?? string.Empty;
+    using (var reader = new StreamReader(
+               req.Body,
+               Encoding.UTF8,
+               detectEncodingFromByteOrderMarks: false,
+               bufferSize: 1024,
+               leaveOpen: true))
+    {
+        body = await reader.ReadToEndAsync() ?? string.Empty;
+    }
     req.Body.Position = 0;
 
     // 2) Logga alla headers (säker string.Join)
@@ -77,28 +84,30 @@ app.MapPost("/webhook/swish", async (
         Console.WriteLine("[DEBUG] Inkommande headers:");
         foreach (var h in req.Headers)
         {
-            var values = h.Value.ToArray();
+            var values = h.Value.ToArray();             // alltid icke-null
             Console.WriteLine($"  {h.Key} = {string.Join(", ", values)}");
         }
     }
 
-    // 3) Plocka ut huvudvärden (med säkra fallback till tom sträng)
-    var tsHeader  = (req.Headers["X-Swish-Timestamp"].ToString()
-                  ?? req.Headers["X-Timestamp"].ToString()) ?? string.Empty;
+    // 3) Plocka ut huvudvärden (alias stöds)
+    var tsHeader  = req.Headers["X-Swish-Timestamp"].ToString();
+    if (string.IsNullOrWhiteSpace(tsHeader))
+        tsHeader = req.Headers["X-Timestamp"].ToString();
 
-    var sigHeader = (req.Headers["X-Swish-Signature"].ToString()
-                  ?? req.Headers["X-Signature"].ToString()) ?? string.Empty;
+    var sigHeader = req.Headers["X-Swish-Signature"].ToString();
+    if (string.IsNullOrWhiteSpace(sigHeader))
+        sigHeader = req.Headers["X-Signature"].ToString();
 
-    var nonce     = req.Headers["X-Swish-Nonce"].ToString();
+    var nonce = req.Headers["X-Swish-Nonce"].ToString();
     if (string.IsNullOrWhiteSpace(nonce))
         nonce = req.Headers["X-Nonce"].ToString();
+
     var finalNonce = nonce ?? string.Empty;
 
     // Debug: exakt timestamp-sträng
     if (isDebug) Console.WriteLine($"[DEBUG] Raw tsHeader: '{tsHeader}'");
 
-    if (string.IsNullOrWhiteSpace(tsHeader) ||
-        string.IsNullOrWhiteSpace(sigHeader))
+    if (string.IsNullOrWhiteSpace(tsHeader) || string.IsNullOrWhiteSpace(sigHeader))
     {
         var payload = new { reason = "missing-headers", tsHeader, sigHeader };
         return isDebug
@@ -146,6 +155,7 @@ app.MapPost("/webhook/swish", async (
         ["X-Swish-Timestamp"] = tsHeader,
         ["X-Swish-Signature"] = sigHeader,
         ["X-Swish-Nonce"]     = finalNonce,
+        // alias för verifierarens skull (tester stöder båda)
         ["X-Timestamp"]       = tsHeader,
         ["X-Signature"]       = sigHeader,
         ["X-Nonce"]           = finalNonce
@@ -165,37 +175,37 @@ app.MapPost("/webhook/swish", async (
 
 app.Run();
 
-
 /// <summary>
 /// Accepterar Unix sekunder/millis och ISO-8601 (UTC).
 /// </summary>
 static bool TryParseTimestamp(string tsHeader, out DateTimeOffset ts)
 {
-  // Heltal? → sekunder/millis
-  if (long.TryParse(tsHeader, out var num))
-  {
-    if (tsHeader.Length >= 13)
+    // Heltal? → sekunder/millis
+    if (long.TryParse(tsHeader, out var num))
     {
-      ts = DateTimeOffset.FromUnixTimeMilliseconds(num).ToUniversalTime();
-      return true;
+        if (tsHeader.Length >= 13)
+        {
+            ts = DateTimeOffset.FromUnixTimeMilliseconds(num).ToUniversalTime();
+            return true;
+        }
+        ts = DateTimeOffset.FromUnixTimeSeconds(num).ToUniversalTime();
+        return true;
     }
-    ts = DateTimeOffset.FromUnixTimeSeconds(num).ToUniversalTime();
-    return true;
-  }
 
-  // ISO-8601
-  if (DateTimeOffset.TryParse(
-          tsHeader,
-          CultureInfo.InvariantCulture,
-          DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
-          out var parsed))
-  {
-    ts = parsed.ToUniversalTime();
-    return true;
-  }
+    // ISO-8601
+    if (DateTimeOffset.TryParse(
+            tsHeader,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
+            out var parsed))
+    {
+        ts = parsed.ToUniversalTime();
+        return true;
+    }
 
-  ts = default;
-  return false;
+    ts = default;
+    return false;
 }
-public partial class Program { }
 
+// Gör Program synlig för WebApplicationFactory i tester
+public partial class Program { }
