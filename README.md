@@ -118,5 +118,20 @@ builder.Services.AddSwishClient(opts => { /* … */ }, clientCertificate: cert);
 
 ---
 
+## Dev quick commands
+
+
+# Build + test
+```powershell
+dotnet build
+dotnet test
+```
+
+# Run sample (development)
+```powershell
+dotnet watch --project samples/SwishSample.Web run
+```
+
+
 
 
