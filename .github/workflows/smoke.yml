@@ -1,0 +1,83 @@
+﻿name: CI Smoke - Webhook
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  smoke:
+    name: Smoke webhook on Windows
+    runs-on: windows-latest
+
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      ASPNETCORE_ENVIRONMENT: Development
+      # Lås porten så scriptet vet vart det ska pinga
+      ASPNETCORE_URLS: http://localhost:5055
+      SWISH_WEBHOOK_SECRET: dev_secret
+      SWISH_DEBUG: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore & build
+        shell: pwsh
+        run: |
+          dotnet restore
+          dotnet build --configuration Debug --nologo
+
+      - name: Start sample server (background)
+        shell: pwsh
+        run: |
+          $proj = ".\samples\SwishSample.Web\SwishSample.Web.csproj"
+          $log  = "$env:RUNNER_TEMP\sample-log.txt"
+          # Starta i bakgrunden och logga utdata
+          Start-Job -Name SwishSample `
+            -ScriptBlock {
+              param($p,$l)
+              $env:ASPNETCORE_ENVIRONMENT = "Development"
+              $env:ASPNETCORE_URLS        = "http://localhost:5055"
+              $env:SWISH_WEBHOOK_SECRET   = "dev_secret"
+              $env:SWISH_DEBUG            = "1"
+              dotnet run --project $p *>&1 | Tee-Object -FilePath $l
+            } -ArgumentList $proj,$log | Out-Null
+
+          # Vänta tills /health svarar (timeout ~30s)
+          $ok = $false
+          for ($i=0; $i -lt 30; $i++) {
+            try {
+              $resp = Invoke-RestMethod -Uri "http://localhost:5055/health" -TimeoutSec 2 -ErrorAction Stop
+              if ($resp -eq "ok") { $ok = $true; break }
+            } catch { Start-Sleep -Seconds 1 }
+          }
+          if (-not $ok) {
+            Write-Host "Sample did not become healthy. Log:"
+            Get-Content $log -Raw | Write-Host
+            throw "Sample not healthy"
+          }
+          Write-Host "Sample is healthy."
+
+      - name: Run smoke script (OK + replay -> 401)
+        shell: pwsh
+        run: |
+          # Kör vårt repo-script mot låst URL
+          .\scripts\smoke-webhook.ps1 -Url "http://localhost:5055/webhook/swish" -Secret "dev_secret" -Replay
+
+      - name: Stop sample server
+        if: always()
+        shell: pwsh
+        run: |
+          $job = Get-Job -Name SwishSample -ErrorAction SilentlyContinue
+          if ($job) {
+            Stop-Job $job -Force
+            Receive-Job $job -Keep | Out-Null
+            Remove-Job $job
+          }
