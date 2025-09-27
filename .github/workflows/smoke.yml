@@ -42,7 +42,7 @@ jobs:
 
           # Starta som separat process och få tillbaka PID
           $psi = New-Object System.Diagnostics.ProcessStartInfo
-          $psi.FileName = "dotnet"
+          $psi.FileName  = "dotnet"
           $psi.Arguments = "run --project `"$proj`" --urls `"$env:FIXED_URL`""
           $psi.RedirectStandardOutput = $true
           $psi.RedirectStandardError  = $true
@@ -60,10 +60,10 @@ jobs:
             [IO.File]::WriteAllText($path, $content)
           } -ArgumentList $out, $log | Out-Null
 
-          # Spara PID och loggväg för senare steg
-          "PID=$($proc.Id)"    >> $env:GITHUB_OUTPUT
-          "LOG=$log"           >> $env:GITHUB_OUTPUT
-          "URL=$env:FIXED_URL" >> $env:GITHUB_OUTPUT
+          # Spara utdata till GITHUB_OUTPUT (OBS: inte $PID-variabeln)
+          "SAMPLE_PID=$($proc.Id)"    >> $env:GITHUB_OUTPUT
+          "LOG=$log"                  >> $env:GITHUB_OUTPUT
+          "URL=$env:FIXED_URL"        >> $env:GITHUB_OUTPUT
 
           # Vänta tills /health svarar (timeout ~45s)
           $ok = $false
@@ -104,9 +104,9 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          $pid = "${{ steps.start_sample.outputs.PID }}"
-          if ($pid) {
-            try { Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue } catch {}
+          $samplePid = "${{ steps.start_sample.outputs.SAMPLE_PID }}"
+          if ($samplePid) {
+            try { Stop-Process -Id [int]$samplePid -Force -ErrorAction SilentlyContinue } catch {}
           }
           $job = Get-Job -Name LogDrain -ErrorAction SilentlyContinue
           if ($job) {
