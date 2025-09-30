@@ -46,8 +46,8 @@ public static class SwishServiceCollectionExtensions
             {
                 return new MtlsHttpHandler(clientCertificate);
             }
-            return new HttpClientHandler();
-        });
+            return new MtlsHttpHandler();
+      });
 
         return services;
     }
