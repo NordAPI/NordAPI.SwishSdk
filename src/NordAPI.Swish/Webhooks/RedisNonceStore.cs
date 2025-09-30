@@ -36,7 +36,7 @@ public sealed class RedisNonceStore : ISwishNonceStore, IDisposable
         var db = _mux.GetDatabase();
         var key = _prefix + nonce;
 
-        // Sätt nyckeln endast om den inte finns (NX) och med expiry = ttl.
+        // SÃ¤tt nyckeln endast om den inte finns (NX) och med expiry = ttl.
         // true => ny (OK). false => fanns redan (replay).
         return await db.StringSetAsync(key, "1", ttl, When.NotExists);
     }

@@ -1,5 +1,8 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using NordAPI.Swish;
 using NordAPI.Swish.DependencyInjection;
@@ -26,28 +29,33 @@ builder.Services.AddSwishClient(opts =>
     opts.Secret = Environment.GetEnvironmentVariable("SWISH_SECRET")
                   ?? "dev-secret";
 
-    // ==========================================================
-    // ✅ Fallback-läge: kör utan mTLS tills vi gör korrekt
-    //    HttpClientFactory-koppling (nästa PR).
-    // ==========================================================
+    // ========================================================================
+    // ✅ Fallback-läge: kör utan mTLS tills vi gör korrekt HttpClientFactory-koppling.
+    // TODO (nästa PR):
+    //  - Flytta mTLS-wiring till riktig HttpClientFactory-kedja i SDK:t,
+    //    t.ex. builder.Services.AddHttpClient("Swish").ConfigurePrimaryHttpMessageHandler(...);
+    //  - Gör det villkorat på env (SWISH_PFX_PATH, SWISH_PFX_PASS) och slå PÅ endast när de finns.
+    //  - I Release: INTE tillåta lax validering.
+    // ========================================================================
 });
 
-// -------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // Nonce-store (replay-skydd):
-// Använd Redis om REDIS_URL eller SWISH_REDIS_CONN är satt,
-// annars InMemory (scavenging every 5 min).
-// -------------------------------------------------------------
+// Använd Redis om REDIS_URL eller SWISH_REDIS_CONN är satt, annars InMemory.
+// ---------------------------------------------------------------------------
 var redisConn =
     Environment.GetEnvironmentVariable("REDIS_URL")
     ?? Environment.GetEnvironmentVariable("SWISH_REDIS_CONN");
 
 if (!string.IsNullOrWhiteSpace(redisConn))
 {
+    // Prod/test – Redis-backed nonce store
     builder.Services.AddSingleton<ISwishNonceStore>(_ =>
         new RedisNonceStore(redisConn, "swish:nonce:"));
 }
 else
 {
+    // Dev fallback – InMemory (med TTL-scavenging)
     builder.Services.AddSingleton<ISwishNonceStore>(_ =>
         new InMemoryNonceStore(TimeSpan.FromMinutes(5)));
 }
@@ -66,6 +74,8 @@ builder.Services.AddSingleton(sp =>
     {
         SharedSecret = secret
     };
+
+    // OBS: Vi utgår från din nuvarande signatur: (options, nonceStore)
     return new SwishWebhookVerifier(opts, nonces);
 });
 
@@ -207,5 +217,4 @@ static bool TryParseTimestamp(string tsHeader, out DateTimeOffset ts)
 }
 
 public partial class Program { }
-
 
