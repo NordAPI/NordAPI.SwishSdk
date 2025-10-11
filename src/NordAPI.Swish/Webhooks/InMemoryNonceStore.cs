@@ -6,51 +6,65 @@ using System.Threading.Tasks;
 namespace NordAPI.Swish.Webhooks;
 
 /// <summary>
-/// Default in-memory implementation of <see cref="ISwishNonceStore"/>.
-/// Used for local development or single-instance deployments.
+/// In-memory implementation of <see cref="ISwishNonceStore"/> used for local development and testing.
+/// Thread-safe, but not suitable for multi-instance or production environments.
 /// </summary>
-/// <remarks>
-/// Nonces are kept in memory until their expiration time.
-/// This implementation is not distributed and will reset on application restart.
-/// </remarks>
-public sealed class InMemoryNonceStore : ISwishNonceStore
+public sealed class InMemoryNonceStore : ISwishNonceStore, IDisposable
 {
-    private readonly ConcurrentDictionary<string, DateTimeOffset> _nonces = new();
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _entries = new();
+    private readonly Timer _cleanupTimer;
 
     /// <summary>
-    /// Creates a new in-memory nonce store.
+    /// Initializes a new instance of the <see cref="InMemoryNonceStore"/> class.
+    /// Starts a background cleanup task that periodically removes expired nonces.
     /// </summary>
-    public InMemoryNonceStore()
+    /// <param name="cleanupInterval">How often expired entries are cleaned up. Default: 1 minute.</param>
+    public InMemoryNonceStore(TimeSpan? cleanupInterval = null)
     {
+        var interval = cleanupInterval ?? TimeSpan.FromMinutes(1);
+        _cleanupTimer = new Timer(_ => Cleanup(), null, interval, interval);
     }
 
     /// <summary>
-    /// Compatibility constructor. Accepts an unused parameter for backward compatibility with samples.
+    /// Tries to remember a nonce until the specified expiration time.
+    /// Returns <c>true</c> if it was newly added, <c>false</c> if it already existed (replay).
     /// </summary>
-    /// <param name="_">Ignored parameter.</param>
-    public InMemoryNonceStore(object? _)
-    {
-    }
-
-    /// <inheritdoc />
     public Task<bool> TryRememberAsync(string nonce, DateTimeOffset expiresAtUtc, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
-
-        // Clean up expired entries opportunistically
-        var now = DateTimeOffset.UtcNow;
-        foreach (var kvp in _nonces)
-        {
-            if (kvp.Value <= now)
-                _nonces.TryRemove(kvp.Key, out _);
-        }
-
-        // Try to add the nonce if not seen or not expired
-        if (expiresAtUtc <= now)
+        if (string.IsNullOrWhiteSpace(nonce))
             return Task.FromResult(false);
 
-        var added = _nonces.TryAdd(nonce, expiresAtUtc);
-        return Task.FromResult(added);
+        // Remove expired entry if it exists
+        if (_entries.TryGetValue(nonce, out var existing) && existing > DateTimeOffset.UtcNow)
+            return Task.FromResult(false);
+
+        _entries[nonce] = expiresAtUtc;
+        return Task.FromResult(true);
+    }
+
+    /// <summary>
+    /// Performs synchronous TryRemember call for compatibility.
+    /// </summary>
+    public bool TryRemember(string nonce, DateTimeOffset expiresAtUtc, CancellationToken ct = default)
+        => TryRememberAsync(nonce, expiresAtUtc, ct).GetAwaiter().GetResult();
+
+    private void Cleanup()
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var kvp in _entries)
+        {
+            if (kvp.Value <= now)
+                _entries.TryRemove(kvp.Key, out _);
+        }
+    }
+
+    /// <summary>
+    /// Stops the background cleanup timer and releases resources.
+    /// </summary>
+    public void Dispose()
+    {
+        _cleanupTimer.Dispose();
+        _entries.Clear();
     }
 }
 
