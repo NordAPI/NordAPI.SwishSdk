@@ -1,32 +1,51 @@
 ﻿# NordAPI.Swish SDK (MVP) — English README
 
-[![Build](https://github.com/NordAPI/NordAPI.SwishSdk/actions/workflows/ci.yml/badge.svg)](https://github.com/NordAPI/NordAPI.SwishSdk/actions/workflows/ci.yml)
-[![NuGet](https://img.shields.io/nuget/v/NordAPI.Swish.svg)](https://www.nuget.org/packages/NordAPI.Swish)
+[![Build](https://github.com/NordAPI/NordAPI.SwishSdk/actions/workflows/ci-build.yml/badge.svg)](https://github.com/NordAPI/NordAPI.SwishSdk/actions/workflows/ci-build.yml)
+[![NuGet](https://img.shields.io/badge/NuGet-Unlisted-blue)](https://www.nuget.org/packages/NordAPI.Swish)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-> 🇸🇪 Swedish version: `README.sv.md`  
-> ✅ See also: `docs/integration-checklist.md`
+> 🇸🇪 Swedish version: [README.sv.md](./README.sv.md)  
+> ✅ See also: [Integration Checklist](./docs/integration-checklist.md)
 
-**NordAPI.Swish** is a lightweight and secure .NET SDK for **Swish payments and refunds** in test and development environments.  
-Built-in HMAC signing, mTLS support, and retry/rate limiting via `HttpClientFactory`.
+A lightweight and secure .NET SDK for **Swish payments and refunds**.  
+By default it targets the Swish **test** environment; it’s **production-grade** once configured as described below.
 
 ---
 
 ## Table of Contents
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Quickstart — Minimal Program.cs](#quickstart--minimal-programcs)
-- [Configuration — Environment Variables & User-Secrets](#configuration--environment-variables--user-secrets)
-- [mTLS (optional)](#mtls-optional)
-- [Running Samples and Tests](#running-samples-and-tests)
-- [Webhook Smoke Test](#webhook-smoke-test)
-- [API Overview (Signatures & Models)](#api-overview-signatures--models)
-- [Error Scenarios & Retry Policy](#error-scenarios--retry-policy)
-- [Security Recommendations](#security-recommendations)
-- [Contributing (PR/CI Requirements)](#contributing-prci-requirements)
-- [Release & Versioning](#release--versioning)
-- [FAQ](#faq)
-- [License](#license)
+- [NordAPI.Swish SDK (MVP) — English README](#nordapiswish-sdk-mvp--english-readme)
+  - [Table of Contents](#table-of-contents)
+  - [Production readiness](#production-readiness)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Quickstart — Minimal Program.cs](#quickstart--minimal-programcs)
+  - [Configuration — Environment Variables \& User-Secrets](#configuration--environment-variables--user-secrets)
+  - [mTLS (optional)](#mtls-optional)
+  - [Running Samples and Tests](#running-samples-and-tests)
+  - [Webhook Smoke Test](#webhook-smoke-test)
+  - [API Overview (Signatures \& Models)](#api-overview-signatures--models)
+  - [Error Scenarios \& Retry Policy](#error-scenarios--retry-policy)
+  - [Security Recommendations](#security-recommendations)
+  - [Contributing (PR/CI Requirements)](#contributing-prci-requirements)
+  - [Release \& Versioning](#release--versioning)
+  - [FAQ](#faq)
+  - [License](#license)
+
+---
+
+## Production readiness
+
+This SDK is **production-grade**, but ships with development defaults for easy local testing. Out of the box it targets Swish **test** environment.
+
+To go live in production, you **must**:
+
+- Set real production values for `SWISH_BASE_URL`, `SWISH_API_KEY`, and `SWISH_SECRET` (never commit secrets).
+- Run behind **HTTPS** (HSTS in production) and keep secrets in env/KeyVault.
+- Enable webhook verification with **HMAC + nonce**, timestamp in **seconds**, tight clock skew (±5 minutes), and replay protection backed by **Redis/DB** (not InMemory).
+- Rotate keys/secrets and disable any debug flags.
+- Add structured logging (no PII) and sensible rate limiting.
+
+👉 Follow the step-by-step **[Integration Checklist](./docs/integration-checklist.md)** before switching to production.
 
 ---
 
@@ -39,7 +58,7 @@ Built-in HMAC signing, mTLS support, and retry/rate limiting via `HttpClientFact
 
 ## Installation
 
-Install the latest stable NuGet version:
+Install the package (currently unlisted):
 
 ```powershell
 dotnet add package NordAPI.Swish --version x.y.z
