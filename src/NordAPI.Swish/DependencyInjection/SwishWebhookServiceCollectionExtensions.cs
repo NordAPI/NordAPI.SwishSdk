@@ -1,75 +1,58 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
-using NordAPI.Swish.Internal;
+using NordAPI.Swish.Webhooks;
 
-namespace NordAPI.Swish.Webhooks
+namespace NordAPI.Swish.DependencyInjection;
+
+public static class SwishWebhookServiceCollectionExtensions
 {
     /// <summary>
-    /// DI registration for webhook verification (HMAC + timestamp + nonce).
+    /// Adds the Swish webhook verifier and exposes options as a concrete instance for DI.
     /// </summary>
-    public static class SwishWebhookServiceCollectionExtensions
+    public static ISwishWebhookBuilder AddSwishWebhookVerification(
+        this IServiceCollection services,
+        Action<SwishWebhookVerifierOptions> configure)
     {
-        public static ISwishWebhookBuilder AddSwishWebhookVerification(
-            this IServiceCollection services,
-            Action<SwishWebhookVerifierOptions> configure)
+        if (services == null) throw new ArgumentNullException(nameof(services));
+        if (configure == null) throw new ArgumentNullException(nameof(configure));
+
+        // IMPORTANT: Verifier depends on SwishWebhookVerifierOptions (not IOptions<>).
+        var opts = new SwishWebhookVerifierOptions();
+        configure(opts);
+        services.AddSingleton(opts);
+
+        services.AddSingleton<SwishWebhookVerifier>();
+        return new SwishWebhookBuilder(services);
+    }
+
+    /// <summary>
+    /// Adds a nonce store depending on environment configuration.
+    /// Uses Redis if a connection string is provided, otherwise falls back to in-memory.
+    /// </summary>
+    public static ISwishWebhookBuilder AddNonceStoreFromEnvironment(
+        this ISwishWebhookBuilder builder,
+        TimeSpan ttl,
+        string prefix = "swish:nonce:")
+    {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+
+        var connectionString =
+            Environment.GetEnvironmentVariable("SWISH_REDIS") ??
+            Environment.GetEnvironmentVariable("SWISH_REDIS_CONN") ??
+            Environment.GetEnvironmentVariable("REDIS_URL");
+
+        // Null-guard: if no Redis connection string, use in-memory store.
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
-            if (services is null) throw new ArgumentNullException(nameof(services));
-            if (configure is null) throw new ArgumentNullException(nameof(configure));
-
-            var opts = new SwishWebhookVerifierOptions();
-            configure(opts);
-            if (string.IsNullOrWhiteSpace(opts.SharedSecret))
-                throw new ArgumentException("SharedSecret must be configured.", nameof(configure));
-
-            services.AddSingleton(opts);
-            services.AddSingleton<SwishWebhookVerifier>(); // needs ISwishNonceStore
-
-            return new SwishWebhookBuilder(services);
-        }
-
-        public static ISwishWebhookBuilder AddInMemoryNonceStore(this ISwishWebhookBuilder builder)
-        {
-            if (builder is null) throw new ArgumentNullException(nameof(builder));
             builder.Services.AddSingleton<ISwishNonceStore, InMemoryNonceStore>();
             return builder;
         }
 
-        public static ISwishWebhookBuilder AddRedisNonceStore(
-            this ISwishWebhookBuilder builder,
-            Func<IServiceProvider, ISwishNonceStore> factory)
-        {
-            if (builder is null) throw new ArgumentNullException(nameof(builder));
-            if (factory is null) throw new ArgumentNullException(nameof(factory));
-            builder.Services.AddSingleton(factory);
-            return builder;
-        }
-
-        /// <summary>
-        /// Registers an <see cref="ISwishNonceStore"/> based on environment configuration.
-        /// Uses Redis if SWISH_REDIS / SWISH_REDIS_CONN / REDIS_URL is set; otherwise InMemory.
-        /// </summary>
-        public static ISwishWebhookBuilder AddNonceStoreFromEnvironment(
-            this ISwishWebhookBuilder builder,
-            TimeSpan inMemoryTtl,
-            string redisKeyPrefix = "swish:nonce:")
-        {
-            if (builder is null) throw new ArgumentNullException(nameof(builder));
-
-            if (RedisEnv.TryGetConnection(out var conn))
-            {
-                builder.Services.AddSingleton<ISwishNonceStore>(_ =>
-                    new RedisNonceStore(conn, redisKeyPrefix));
-            }
-            else
-            {
-                builder.Services.AddSingleton<ISwishNonceStore>(_ =>
-                    new InMemoryNonceStore(inMemoryTtl));
-            }
-
-            return builder;
-        }
+        builder.Services.AddSingleton<ISwishNonceStore>(_ => new RedisNonceStore(connectionString, prefix));
+        return builder;
     }
 }
+
 
 
 
