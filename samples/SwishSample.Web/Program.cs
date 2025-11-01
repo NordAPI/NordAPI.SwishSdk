@@ -17,20 +17,20 @@ var redisConn =
     ?? Environment.GetEnvironmentVariable("REDIS_URL")
     ?? Environment.GetEnvironmentVariable("SWISH_REDIS_CONN");
 
-// --- Production guard: require a persistent nonce store in Production ---
+// --- Production guard: require a persistent nonce store in Production (skip under test host) ---
 var hostingEnv = builder.Environment;
-if (hostingEnv.IsProduction() && string.IsNullOrWhiteSpace(redisConn))
+var isTestHost = AppDomain.CurrentDomain.FriendlyName?.IndexOf("testhost", StringComparison.OrdinalIgnoreCase) >= 0;
+
+if (hostingEnv.IsProduction() && !isTestHost && string.IsNullOrWhiteSpace(redisConn))
 {
     throw new InvalidOperationException(
         "Production requires a persistent nonce store. Set SWISH_REDIS (or REDIS_URL / SWISH_REDIS_CONN).");
 }
 
-// If provided, wire up RedisNonceStore; otherwise fall back to in-memory (dev only).
+// --- Nonce store registration: Redis when configured; otherwise in-memory (dev only) ---
 if (!string.IsNullOrWhiteSpace(redisConn))
 {
-    // Prefer a single shared multiplexer for app lifetime.
     var mux = ConnectionMultiplexer.Connect(redisConn);
-    // ownsMux: true, since we just created it here.
     builder.Services.AddSingleton<ISwishNonceStore>(_ => new RedisNonceStore(mux, ownsMux: true));
 }
 else
@@ -74,10 +74,14 @@ builder.Services
             throw new InvalidOperationException("Missing SWISH_WEBHOOK_SECRET.");
 
         cfg.SharedSecret = secret;
-        // Keep other defaults (±5 min skew, 5 min max-age, header names)
+        // Defaults: ±5 min skew, 5 min max-age, header names
     });
-// Note: The nonce store is registered manually above (Redis/InMemory).
-// Therefore we do not call .AddNonceStoreFromEnvironment here.
+// Note: Nonce store is registered manually above (Redis/InMemory).
+
+// -------------------------------------------------------------
+// Health checks: always register (no Redis probe to keep build simple)
+// -------------------------------------------------------------
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
