@@ -54,6 +54,14 @@ body{
     linear-gradient(180deg,var(--bg-top),var(--bg-deep));
 }
 
+/* mobile-only: simplified background for Chrome rendering */
+@media (max-width: 768px){
+  html,body{
+    background-color: var(--bg-top);
+    background: linear-gradient(180deg,var(--bg-top),var(--bg-deep));
+    min-height: 100dvh;
+  }
+}
 
 .container{width:min(1200px,92%);margin:0 auto}
 :focus-visible{outline:2px solid var(--blue-2);outline-offset:2px}
