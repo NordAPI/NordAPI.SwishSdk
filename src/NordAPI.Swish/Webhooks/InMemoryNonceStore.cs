@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +13,9 @@ public sealed class InMemoryNonceStore : ISwishNonceStore, IDisposable
 {
     private readonly ConcurrentDictionary<string, DateTimeOffset> _entries = new();
     private readonly Timer _cleanupTimer;
+
+    // Ensures TryRemember is atomic under concurrency (check + add must be one operation).
+    private readonly object _gate = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InMemoryNonceStore"/> class.
@@ -34,12 +37,23 @@ public sealed class InMemoryNonceStore : ISwishNonceStore, IDisposable
         if (string.IsNullOrWhiteSpace(nonce))
             return Task.FromResult(false);
 
-        // Remove expired entry if it exists
-        if (_entries.TryGetValue(nonce, out var existing) && existing > DateTimeOffset.UtcNow)
-            return Task.FromResult(false);
+        lock (_gate)
+        {
+            var now = DateTimeOffset.UtcNow;
 
-        _entries[nonce] = expiresAtUtc;
-        return Task.FromResult(true);
+            if (_entries.TryGetValue(nonce, out var existing))
+            {
+                // Still valid -> replay
+                if (existing > now)
+                    return Task.FromResult(false);
+
+                // Expired -> allow re-use by removing the old entry first
+                _entries.TryRemove(nonce, out _);
+            }
+
+            _entries[nonce] = expiresAtUtc;
+            return Task.FromResult(true);
+        }
     }
 
     /// <summary>
