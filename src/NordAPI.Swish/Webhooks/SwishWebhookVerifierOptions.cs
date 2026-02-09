@@ -32,7 +32,7 @@ public sealed class SwishWebhookVerifierOptions
     public string SignatureHeaderName { get; set; } = "X-Swish-Signature";
 
     /// <summary>
-    /// The name of the header containing the Unix or ISO timestamp.
+    /// The name of the header containing the Unix timestamp in seconds.
     /// Default is <c>X-Swish-Timestamp</c>.
     /// </summary>
     public string TimestampHeaderName { get; set; } = "X-Swish-Timestamp";
