@@ -22,8 +22,6 @@ namespace NordAPI.Swish.Webhooks;
 ///
 /// Accepted timestamp formats:
 /// - Unix seconds (e.g., 1757962690)
-/// - Unix milliseconds (e.g., 1757960508877)
-/// - ISO-8601 UTC (e.g., 2025-09-15T18:21:01Z)
 /// </remarks>
 public sealed class SwishWebhookVerifier
 {
