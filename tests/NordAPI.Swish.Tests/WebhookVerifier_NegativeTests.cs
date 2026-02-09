@@ -34,7 +34,7 @@ namespace NordAPI.Swish.Tests
 
         /// <summary>
         /// Builds a headers dictionary containing:
-        ///  - ISO-8601 timestamp
+        ///  - Unix timestamp in seconds
         ///  - nonce
         ///  - Base64-encoded HMAC-SHA256 signature
         /// Includes both primary and alias header names to support removal tests.
@@ -45,7 +45,7 @@ namespace NordAPI.Swish.Tests
             DateTimeOffset ts,
             string? nonce = null)
         {
-            var timestamp  = ts.ToUniversalTime().ToString("o");
+            var timestamp  = ts.ToUnixTimeSeconds().ToString();
             var finalNonce = nonce ?? Guid.NewGuid().ToString("N");
             var message    = $"{timestamp}\n{finalNonce}\n{body}";
             var key        = Encoding.UTF8.GetBytes(secret);
@@ -134,7 +134,3 @@ namespace NordAPI.Swish.Tests
         }
     }
 }
-
-
-
-

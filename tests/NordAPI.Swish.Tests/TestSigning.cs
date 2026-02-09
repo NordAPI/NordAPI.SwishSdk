@@ -7,7 +7,7 @@ namespace NordAPI.Swish.Tests;
 /// <summary>
 /// Helper for constructing signed webhook headers used by tests.
 /// Produces canonical message: "{timestamp}\n{nonce}\n{body}" and Base64(HMACSHA256(...)).
-/// Supports both ISO-8601 and Unix seconds for the timestamp to match accepted input.
+/// Generates signed webhook headers using a Unix timestamp in seconds.
 /// </summary>
 internal static class TestSigning
 {
@@ -15,12 +15,9 @@ internal static class TestSigning
         string secret,
         string body,
         DateTimeOffset ts,
-        string? nonce = null,
-        bool useIsoTimestamp = true)
+        string? nonce = null)
     {
-        var tsStr = useIsoTimestamp
-            ? ts.ToUniversalTime().ToString("o")  // ISO 8601
-            : ts.ToUnixTimeSeconds().ToString();  // Unix seconds
+        var tsStr = ts.ToUnixTimeSeconds().ToString(); // Unix seconds
 
         var finalNonce = nonce ?? Guid.NewGuid().ToString("N");
         var message = $"{tsStr}\n{finalNonce}\n{body}";
@@ -44,6 +41,7 @@ internal static class TestSigning
         return (headers, message);
     }
 }
+
 
 
 
