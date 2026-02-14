@@ -15,10 +15,10 @@ internal sealed class HmacSigningHandler : DelegatingHandler
     private readonly string _secret;
     private readonly ISystemClock _clock;
 
-    public const string HeaderSignature = "X-Signature";
-    public const string HeaderTimestamp = "X-Timestamp";
-    public const string HeaderNonce = "X-Nonce";
-    public const string HeaderApiKey = "X-Api-Key";
+    public const string HeaderSignature = "X-Swish-Signature";
+    public const string HeaderTimestamp = "X-Swish-Timestamp";
+    public const string HeaderNonce = "X-Swish-Nonce";
+    public const string HeaderApiKey = "X-Swish-Api-Key";
 
     public HmacSigningHandler(string apiKey, string secret, ISystemClock? clock = null)
     {
