@@ -9,17 +9,17 @@
 
 Official NordAPI SDK for Swish and upcoming BankID integrations.
 
-[![Build](https://github.com/NordAPI/NordAPI.Swish/actions/workflows/ci.yml/badge.svg)](https://github.com/NordAPI/NordAPI.Swish/actions/workflows/ci.yml)
+[![Build](https://github.com/NordAPI/NordAPI.SDK/actions/workflows/ci.yml/badge.svg)](https://github.com/NordAPI/NordAPI.SDK/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/NordAPI.Swish.svg?label=NuGet)](https://www.nuget.org/packages/NordAPI.Swish)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 ![.NET](https://img.shields.io/badge/.NET-8%2B-blueviolet)
 
-> 🇸🇪 Swedish version: [README.sv.md](https://github.com/NordAPI/NordAPI.Swish/blob/main/src/NordAPI.Swish/README.sv.md)
+> 🇸🇪 Swedish version: [README.sv.md](https://github.com/NordAPI/NordAPI.SDK/blob/main/src/NordAPI.Swish/README.sv.md)
 > ✅ See also: [Integration Checklist](https://nordapi.net/integration-checklist/)
 
-A lightweight and secure .NET SDK for integrating **Swish payments and refunds**, with a focus on safe test and development workflows.
-Includes enforced-by-default mTLS, an optional NordAPI HMAC signing hardening layer, and an internal retry/backoff mechanism for transient errors.
-💡 *BankID SDK support is planned next — stay tuned for the `NordAPI.BankID` package.*
+A lightweight and secure .NET SDK for integrating **Swish payments and refunds** with deterministic, fail-closed defaults.
+Includes enforced-by-default mTLS, optional HMAC hardening for webhook verification, and rate limiting helpers.
+💡 *BankID support is planned next — stay tuned for the `NordAPI.BankID` package.*
 
 **Supported .NET versions:** .NET 8 (LTS). Planned: .NET 10 (LTS) support.
 
