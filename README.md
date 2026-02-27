@@ -8,17 +8,17 @@
 
 Official NordAPI SDK for Swish and upcoming BankID integrations.
 
-[![Build](https://github.com/NordAPI/NordAPI.Swish/actions/workflows/ci.yml/badge.svg)](https://github.com/NordAPI/NordAPI.Swish/actions/workflows/ci.yml)
+[![Build](https://github.com/NordAPI/NordAPI.SDK/actions/workflows/ci.yml/badge.svg)](https://github.com/NordAPI/NordAPI.SDK/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/NordAPI.Swish.svg?label=NuGet)](https://www.nuget.org/packages/NordAPI.Swish)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 ![.NET](https://img.shields.io/badge/.NET-8%2B-blueviolet)
 
-> 🇸🇪 Swedish version: [README.sv.md](https://github.com/NordAPI/NordAPI.Swish/blob/main/README.sv.md)
+> 🇸🇪 Swedish version: [README.sv.md](https://github.com/NordAPI/NordAPI.SDK/blob/main/README.sv.md)
 > ✅ See also: [Integration Checklist](https://nordapi.net/integration-checklist/)
 
-A lightweight and secure .NET SDK for integrating **Swish payments and refunds** in test and development environments.
-Includes built-in support for HMAC authentication, mTLS, and rate limiting.
-💡 *BankID SDK support is planned next — stay tuned for the NordAPI.BankID package.*
+A lightweight and secure .NET SDK for integrating **Swish payments and refunds** with deterministic, fail-closed defaults.
+Includes enforced-by-default mTLS, optional HMAC hardening for webhook verification, and rate limiting helpers.
+💡 *BankID support is planned next — stay tuned for the `NordAPI.BankID` package.*
 
 **Requires .NET 8+ (LTS compatible)**
 
@@ -348,8 +348,8 @@ services.AddHttpClient("Swish")
 
 ## 💬 Getting help
 
-- 💬 Questions / feedback: Use [GitHub Discussions](https://github.com/NordAPI/NordAPI.Swish/discussions) (no secrets/PII).
-- 🐛 Bugs / feature requests: Open a [GitHub Issue](https://github.com/NordAPI/NordAPI.Swish/issues).
+- 💬 Questions / feedback: Use [GitHub Discussions](https://github.com/NordAPI/NordAPI.SDK/discussions) (no secrets/PII).
+- 🐛 Bugs / feature requests: Open a [GitHub Issue](https://github.com/NordAPI/NordAPI.SDK/issues).
 - 🔒 Security issues: Email [security@nordapi.com](mailto:security@nordapi.com) (do not open public issues/discussions).
 
 ---
