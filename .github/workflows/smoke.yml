@@ -1,4 +1,4 @@
-﻿name: CI Smoke - Webhook
+name: CI Smoke - Webhook
 
 on:
   pull_request:
