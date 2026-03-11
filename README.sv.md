@@ -26,6 +26,21 @@ Inkluderar mTLS som är påslaget som standard, valfri HMAC-härdning för webho
 
 ---
 
+## Trust Guarantees
+
+NordAPI skiljer mellan Swishs inbyggda transportgarantier och NordAPIs hardening-garantier.
+
+- Swish tillhandahåller den grundläggande callback-/API-transportmodellen.
+- NordAPI lägger till valfri hardening på applikationsnivå, såsom canonical byte-verifiering, Base64 HMAC-validering, Unix-seconds timestamp-hantering och nonce-baserat replay-skydd.
+- `X-Swish-Timestamp`, `X-Swish-Nonce` och `X-Swish-Signature` är NordAPI-specifika hardening-headers och skickas inte av Swish som en del av den inbyggda callback-modellen.
+- mTLS är enforced som standard för API-transport.
+- `Idempotency-Key` genereras en gång per logisk operation och samma nyckel återanvänds vid retries.
+- Ingen gateway- eller proxy-layer krävs för normal drift.
+
+Se den publika Integration Checklist och Security & Compliance-noterna ovan för operativ vägledning och tydliga ansvarsfördelningar.
+
+---
+
 ## Scope
 
 För att hålla SDK:t fokuserat och lätt att granska är gränserna medvetet snäva.
