@@ -1,0 +1,160 @@
+﻿using System;
+using System.IO;
+using System.Text;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
+using NordAPI.Swish;
+using NordAPI.Swish.DependencyInjection;
+using NordAPI.Swish.Webhooks;
+using StackExchange.Redis;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Detect xUnit test host (so we can relax HTTPS in tests)
+var isTestHost = AppDomain.CurrentDomain.FriendlyName?.IndexOf("testhost", StringComparison.OrdinalIgnoreCase) >= 0;
+
+// --- Redis connection string discovery (standard + aliases) ---
+var redisConn =
+    Environment.GetEnvironmentVariable("SWISH_REDIS")
+    ?? Environment.GetEnvironmentVariable("REDIS_URL")
+    ?? Environment.GetEnvironmentVariable("SWISH_REDIS_CONN");
+
+// --- Production guard: require a persistent nonce store in Production (skip under test host) ---
+var hostingEnv = builder.Environment;
+if (hostingEnv.IsProduction() && !isTestHost && string.IsNullOrWhiteSpace(redisConn))
+{
+    throw new InvalidOperationException(
+        "Production requires a persistent nonce store. Set SWISH_REDIS (or REDIS_URL / SWISH_REDIS_CONN).");
+}
+
+// --- Nonce store registration: Redis when configured; otherwise in-memory (dev only) ---
+if (!string.IsNullOrWhiteSpace(redisConn))
+{
+    // Prefer a single shared multiplexer for app lifetime.
+    var mux = ConnectionMultiplexer.Connect(redisConn);
+    builder.Services.AddSingleton<ISwishNonceStore>(_ => new RedisNonceStore(mux, ownsMux: true));
+}
+else
+{
+    builder.Services.AddSingleton<ISwishNonceStore, InMemoryNonceStore>();
+}
+
+// -------------------------------------------------------------
+// Swish SDK client (ENV-driven base URL + HMAC). mTLS is set inside the SDK.
+// -------------------------------------------------------------
+var envName = Environment.GetEnvironmentVariable("SWISH_ENV") ?? "";
+
+var baseUrl = Environment.GetEnvironmentVariable("SWISH_BASE_URL");
+if (string.IsNullOrWhiteSpace(baseUrl))
+{
+    if (string.Equals(envName, "TEST", StringComparison.OrdinalIgnoreCase))
+        baseUrl = Environment.GetEnvironmentVariable("SWISH_BASE_URL_TEST");
+    else if (string.Equals(envName, "PROD", StringComparison.OrdinalIgnoreCase))
+        baseUrl = Environment.GetEnvironmentVariable("SWISH_BASE_URL_PROD");
+}
+
+baseUrl ??= "https://example.invalid";
+
+
+Console.WriteLine($"[Swish] Env='{envName?.ToUpperInvariant()}', BaseAddress={baseUrl}");
+
+builder.Services.AddSwishClient(opts =>
+{
+    opts.BaseAddress = new Uri(baseUrl);
+    opts.ApiKey = Environment.GetEnvironmentVariable("SWISH_API_KEY") ?? "dev-key";
+    opts.Secret = Environment.GetEnvironmentVariable("SWISH_SECRET") ?? "dev-secret";
+});
+
+// -------------------------------------------------------------
+// Webhook verification (secret via env / config)
+// -------------------------------------------------------------
+builder.Services
+    .AddSwishWebhookVerification(cfg =>
+    {
+        var secret =
+            Environment.GetEnvironmentVariable("SWISH_WEBHOOK_SECRET")
+            ?? builder.Configuration["SWISH_WEBHOOK_SECRET"];
+
+        if (string.IsNullOrWhiteSpace(secret))
+            throw new InvalidOperationException("Missing SWISH_WEBHOOK_SECRET.");
+
+        cfg.SharedSecret = secret;
+        // Defaults: ±5 min skew, 5 min max-age, header names
+    });
+// Note: Nonce store is registered manually above (Redis/InMemory).
+
+// -------------------------------------------------------------
+// Health checks: always register (keep simple; no Redis probe here)
+// -------------------------------------------------------------
+builder.Services.AddHealthChecks();
+
+var app = builder.Build();
+
+// -------------------------------------------------------------
+// Small helper endpoints
+// -------------------------------------------------------------
+app.MapHealthChecks("/health/ready");
+app.MapGet("/", () => "Swish sample is running. Try /health, /di-check, or POST /webhook/swish");
+app.MapGet("/health", () => "ok");
+app.MapGet("/di-check", (ISwishClient swish) => swish is not null ? "ISwishClient is registered" : "not found");
+
+// -------------------------------------------------------------
+// Webhook endpoint (HTTPS required in prod, signature + timestamp + nonce)
+// -------------------------------------------------------------
+app.MapPost("/webhook/swish", async (
+    HttpRequest req,
+    [FromServices] SwishWebhookVerifier verifier,
+    [FromServices] IWebHostEnvironment env,
+    [FromServices] ILoggerFactory loggerFactory) =>
+{
+    var log = loggerFactory.CreateLogger("Swish.Webhook");
+
+    // 1) Require HTTPS outside Development (but allow under test host)
+    if (!env.IsDevelopment() && !isTestHost && !req.IsHttps)
+        return Results.BadRequest(new { reason = "https-required" });
+
+    // 2) Read raw body
+    req.EnableBuffering();
+    string rawBody;
+    using (var reader = new StreamReader(req.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
+        rawBody = (await reader.ReadToEndAsync()) ?? string.Empty;
+    req.Body.Position = 0;
+
+    // 3) Pick STRICT headers (no aliases in the sample)
+    var tsHeader = req.Headers["X-Swish-Timestamp"].ToString();
+    var sigHeader = req.Headers["X-Swish-Signature"].ToString();
+    var nonce = req.Headers["X-Swish-Nonce"].ToString();
+
+    if (string.IsNullOrWhiteSpace(tsHeader) ||
+        string.IsNullOrWhiteSpace(sigHeader) ||
+        string.IsNullOrWhiteSpace(nonce))
+    {
+        return Results.BadRequest(new { reason = "missing-required-headers" });
+    }
+
+    var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["X-Swish-Timestamp"] = tsHeader,
+        ["X-Swish-Signature"] = sigHeader,
+        ["X-Swish-Nonce"] = nonce
+    };
+
+    // 4) Verify
+    var now = DateTimeOffset.UtcNow;
+    var result = verifier.Verify(rawBody, headers, now);
+
+    if (!result.Success)
+    {
+        log.LogWarning("Webhook verification failed. Reason='{Reason}', Nonce='{Nonce}'",
+            result.Reason ?? "sig-or-replay-failed", nonce);
+        return Results.Json(new { reason = result.Reason ?? "sig-or-replay-failed" }, statusCode: 401);
+    }
+
+    log.LogInformation("Webhook accepted. Nonce='{Nonce}'", nonce);
+    return Results.Ok(new { received = true });
+});
+
+app.Run();
+
+// Expose Program for tests
+public partial class Program { }

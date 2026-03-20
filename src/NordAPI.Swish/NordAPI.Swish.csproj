@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <AssemblyName>NordAPI.Swish</AssemblyName>
+    <PackageId>NordAPI.Swish</PackageId>
+
+    <!-- NuGet package icon (must be included in the package root) -->
+    <PackageIcon>nordapi-package-icon-128.png</PackageIcon>
+  </PropertyGroup>
+
+  <!-- Debug: do not generate XML docs to avoid noisy CS1591 during local development. -->
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Release: generate XML docs (IntelliSense). -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Allow ASP.NET Core types (IEndpointFilter, EndpointFilterInvocationContext, RouteHandlerBuilder, etc.) -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.9.25" />
+    <PackageReference Include="System.Net.Http.Json" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Pack the icon into the NuGet package root -->
+  <ItemGroup>
+    <None Include="..\..\assets\nordapi-package-icon-128.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

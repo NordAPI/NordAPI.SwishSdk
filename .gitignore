@@ -1,0 +1,46 @@
+﻿# Build output
+bin/
+obj/
+
+# IDE/editor files
+.vscode/
+.vs/
+*.user
+*.suo
+
+# Test output
+TestResults/
+coveragereport/
+
+# Certificates and private keys - NEVER commit these
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
+
+# Local helper files used by samples/tools
+body.json
+
+# CI/pack artifacts - generated output (do not track)
+artifacts/
+
+# Optional: NuGet packages folder (uncomment if using a local packages folder)
+# .nuget/packages/
+
+# Optional: Rider/JetBrains IDE files
+# .idea/
+
+# Optional: dotnet user-secrets (store secrets outside repo)
+# /secrets.json
+
+# Local editor backups
+.pages_rebuild
+*.bak
+*.backup
+*.old
+*.tmp
+*~
+# Git temp files (Windows)
+.merge_file_*

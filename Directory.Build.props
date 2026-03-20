@@ -1,0 +1,44 @@
+<Project>
+  <PropertyGroup>
+    <!-- Company / package authors -->
+    <Company>NordAPI</Company>
+    <Authors>NordAPI</Authors>
+
+    <!-- Repository and package URLs -->
+    <RepositoryUrl>https://github.com/NordAPI/NordAPI.Swish</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/NordAPI/NordAPI.Swish</PackageProjectUrl>
+    <PackageDescription>.NET SDK for Swish payments with mTLS and webhook verification (HMAC, timestamp, nonce replay protection).</PackageDescription>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- Licensing and package metadata -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>swish;payments;sdk;nordapi</PackageTags>
+
+    <!-- XML documentation files (IntelliSense + NuGet) -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Symbols -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- NuGet README (file must be included in package root) -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Build quality -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+
+    <!-- MVP: keep friction low (can be tightened later) -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <!-- Version for this release (update per release) -->
+    <Version>1.1.6</Version>
+  </PropertyGroup>
+
+  <!-- Ensure README.md is packed into the NuGet package root (each project can also override) -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

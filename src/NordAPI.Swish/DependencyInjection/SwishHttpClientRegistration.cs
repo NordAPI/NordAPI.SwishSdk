@@ -1,0 +1,92 @@
+﻿﻿using System;
+using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
+using NordAPI.Swish.Security.Http;
+
+namespace NordAPI.Swish.DependencyInjection
+{
+    /// <summary>
+    /// Registers named HttpClient transports with mTLS support.
+    /// Names:
+    /// - "NordAPI.Swish.Http" (canonical)
+    /// - "Swish"             (compat alias used by tests/samples)
+    ///
+    /// Design:
+    /// - Primary is provided via a preserving filter: if tests/host set Primary we DO NOT override it;
+    ///   otherwise we set an mTLS-capable Primary (env or explicit cert).
+    /// - Debug: relaxed server validation ONLY when using our mTLS path.
+    /// - Release: strict chain.
+    /// </summary>
+    public static class SwishHttpClientRegistration
+    {
+        /// <summary>
+        /// The canonical <see cref="HttpClient"/> name used by NordAPI.Swish.
+        /// </summary>
+        public const string CanonicalClient = "NordAPI.Swish.Http";
+
+        /// <summary>
+        /// The alias <see cref="HttpClient"/> name used by NordAPI.Swish.
+        /// </summary>
+        public const string AliasClient = "Swish";
+
+        /// <summary>
+        /// Registers the Swish mTLS transport for outbound HTTP calls.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="clientCertificate">
+        /// The client certificate used for mutual TLS (mTLS). Provide a real Swish certificate in production.
+        /// </param>
+        /// <returns>The updated <paramref name="services"/> instance.</returns>
+        public static IServiceCollection AddSwishMtlsTransport(
+            this IServiceCollection services,
+            X509Certificate2? clientCertificate = null)
+        {
+            if (services is null) throw new ArgumentNullException(nameof(services));
+
+            // Primary factory (explicit cert wins; else env mTLS; else plain)
+            Func<HttpMessageHandler> primaryFactory = () =>
+            {
+                if (clientCertificate is not null)
+                {
+                    var h = new SocketsHttpHandler();
+                    h.SslOptions.ClientCertificates = new X509CertificateCollection { clientCertificate };
+#if DEBUG
+// Dev-only: allow invalid server certs for local testing. Never compiled into Release.
+// Sonar: S4830 is suppressed here intentionally.
+#pragma warning disable S4830
+                    h.SslOptions.RemoteCertificateValidationCallback = static (_, _, _, _) => true;
+#pragma warning restore S4830
+
+#endif
+                    return h;
+                }
+                return SwishMtlsHandlerFactory.Create(new SwishOptions());
+            };
+
+            // Preserve test/host Primary; only set ours if none exists.
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter>(
+                new SwishPrimaryPreservingFilter(primaryFactory)));
+
+            // Helper to wire identical inner pipeline for both names
+            void Wire(string name)
+            {
+                services
+                    .AddHttpClient(name)
+                    // Inner transport-level handlers
+                    .AddHttpMessageHandler(() =>
+                        new RateLimitingHandler(
+                            maxConcurrency: 4,
+                            minDelayBetweenCalls: TimeSpan.FromMilliseconds(100)));
+            }
+
+            Wire(CanonicalClient);
+            Wire(AliasClient);
+
+            // NOTE: No HMAC here (transport-only named clients).
+            return services;
+        }
+    }
+}

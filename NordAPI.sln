@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C59020ED-C515-48D2-B4A2-EC53D5F01FD0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NordAPI.Swish", "src\NordAPI.Swish\NordAPI.Swish.csproj", "{E8A07552-7777-4F0B-802C-A9E799C0C037}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{A96F9F15-0F40-43B3-BF0F-CB0B5FC26083}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NordAPI.Swish.Tests", "tests\NordAPI.Swish.Tests\NordAPI.Swish.Tests.csproj", "{FB090816-E9E8-4DC8-9712-F2190BC0D457}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{A4510BD0-771C-4B5C-B9D4-34A5FEAE4C82}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SwishSample.Web", "samples\SwishSample.Web\SwishSample.Web.csproj", "{6659871A-FFDF-4624-8E5A-6B6AF8E2FB4E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E8A07552-7777-4F0B-802C-A9E799C0C037}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8A07552-7777-4F0B-802C-A9E799C0C037}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8A07552-7777-4F0B-802C-A9E799C0C037}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8A07552-7777-4F0B-802C-A9E799C0C037}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB090816-E9E8-4DC8-9712-F2190BC0D457}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB090816-E9E8-4DC8-9712-F2190BC0D457}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB090816-E9E8-4DC8-9712-F2190BC0D457}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB090816-E9E8-4DC8-9712-F2190BC0D457}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6659871A-FFDF-4624-8E5A-6B6AF8E2FB4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6659871A-FFDF-4624-8E5A-6B6AF8E2FB4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6659871A-FFDF-4624-8E5A-6B6AF8E2FB4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6659871A-FFDF-4624-8E5A-6B6AF8E2FB4E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E8A07552-7777-4F0B-802C-A9E799C0C037} = {C59020ED-C515-48D2-B4A2-EC53D5F01FD0}
+		{FB090816-E9E8-4DC8-9712-F2190BC0D457} = {A96F9F15-0F40-43B3-BF0F-CB0B5FC26083}
+		{6659871A-FFDF-4624-8E5A-6B6AF8E2FB4E} = {A4510BD0-771C-4B5C-B9D4-34A5FEAE4C82}
+	EndGlobalSection
+EndGlobal
